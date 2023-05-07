@@ -113,15 +113,21 @@ private:
         string minus_word;
        // ищем по слову есть ли оно в документах
       for(auto word:query_words){
-            minus_word='-'+word;
-            if(documents_.count(minus_word)!=0){
-                for(const auto [id,rl]:documents_.at(word)) index_doc.erase(id);
-                 continue;}
-            if(documents_.count(word)!=0){
+             if(word[0]=='-') continue;
+             if(documents_.count(word)!=0){
                idf_word = log(double(document_count_) / double(documents_.at(word).size()));
                for(const auto [id,rl]:documents_.at(word)) index_doc[id]+=rl*idf_word;
                }    
         }
+      //  удаляем минус слова
+       for(auto word:query_words){
+           if(word[0]=='-') {
+               word.erase(0,1);
+               if(documents_.count(word)!=0)
+                  for(const auto [id,rl]:documents_.at(word)) index_doc.erase(id);
+           }  
+       }
+        
     // переносим найденые документы    
        for(const auto& [key,value]:index_doc)
            matched_documents.push_back({key,value});
