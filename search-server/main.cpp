@@ -110,7 +110,7 @@ private:
         vector<Document> matched_documents;
         map <int,double> index_doc;
         double idf_word;
-        string minus_word;
+        
        // ищем по слову есть ли оно в документах
       for(auto word:query_words){
              if(word[0]=='-') continue;
