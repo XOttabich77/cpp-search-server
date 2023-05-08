@@ -60,12 +60,14 @@ public:
     void AddDocument(int document_id, const string& document) {
       const vector<string> words = SplitIntoWordsNoStop(document);
       ++document_count_;
-      double tf_for_word=1/double(words.size());
-      for(string word:words) documents_[word][document_id]+=tf_for_word;
+      double tf_for_word=1.0/words.size();
+      for(string word:words){
+          documents_[word][document_id]+=tf_for_word;
+      }
     }
 
     vector<Document> FindTopDocuments(const string& raw_query) const {
-        const set<string> query_words = ParseQuery(raw_query);
+        Query query_words = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query_words);
 
         sort(matched_documents.begin(), matched_documents.end(),
@@ -83,6 +85,10 @@ private:
     map<string, map<int,double>> documents_;
     int document_count_ = 0;
     set<string> stop_words_;
+    struct Query {
+        set<string> p_word;
+        set<string> m_word;
+    };
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -98,39 +104,50 @@ private:
         return words;
     }
 
-    set<string> ParseQuery(const string& text) const {
-        set<string> query_words;
-        for (const string& word : SplitIntoWordsNoStop(text)) {
-            query_words.insert(word);
+    Query ParseQuery(const string& text) const {
+        Query query_words;
+        for (string& word : SplitIntoWordsNoStop(text)) {
+            if(word[0]=='-'){
+                word.erase(0,1);
+                query_words.m_word.insert(word);
+            }
+            else {
+               query_words.p_word.insert(word); 
+            }
         }
         return query_words;
     }
+    
+    double Idf_Word (const string& word) const{
+        return log(document_count_*1.0/documents_.at(word).size());
+    }
 
-    vector<Document> FindAllDocuments(const set<string>& query_words) const {
+    vector<Document> FindAllDocuments(const Query& query_words) const {
         vector<Document> matched_documents;
         map <int,double> index_doc;
-        double idf_word;
-        
-       // РёС‰РµРј РїРѕ СЃР»РѕРІСѓ РµСЃС‚СЊ Р»Рё РѕРЅРѕ РІ РґРѕРєСѓРјРµРЅС‚Р°С…
-      for(auto word:query_words){
-             if(word[0]=='-') continue;
-             if(documents_.count(word)!=0){
-               idf_word = log(double(document_count_) / double(documents_.at(word).size()));
-               for(const auto [id,rl]:documents_.at(word)) index_doc[id]+=rl*idf_word;
-               }    
+            
+       // ищем по слову есть ли оно в документах
+      for(const string& word:query_words.p_word){
+        if(documents_.count(word)!=0){
+               const double idf_word=Idf_Word(word);   
+               for(const auto [id,rl]:documents_.at(word)){
+                   index_doc[id]+=rl*idf_word;
+               }
+            }    
         }
-      //  СѓРґР°Р»СЏРµРј РјРёРЅСѓСЃ СЃР»РѕРІР°
-       for(auto word:query_words){
-           if(word[0]=='-') {
-               word.erase(0,1);
-               if(documents_.count(word)!=0)
-                  for(const auto [id,rl]:documents_.at(word)) index_doc.erase(id);
+      //  удаляем минус слова
+       for(const string& word:query_words.m_word){
+           if(documents_.count(word)!=0){
+                  for(const auto [id,rl]:documents_.at(word)){
+                      index_doc.erase(id);
+                  }
            }  
        }
         
-    // РїРµСЂРµРЅРѕСЃРёРј РЅР°Р№РґРµРЅС‹Рµ РґРѕРєСѓРјРµРЅС‚С‹    
-       for(const auto& [key,value]:index_doc)
+    // переносим найденые документы    
+       for(const auto& [key,value]:index_doc){
            matched_documents.push_back({key,value});
+       }
               
     return matched_documents;
     }
