@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 using namespace std;
 
@@ -75,40 +76,16 @@ public:
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
     }
 
-vector<Document> FindTopDocuments(const string& raw_query) const {
-        return FindTopDocuments(raw_query,DocumentStatus::ACTUAL);       
+vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status = DocumentStatus::ACTUAL) const {
+    return FindTopDocuments(raw_query,[status](int document_id, DocumentStatus doc_status, int rating) { return doc_status == status; });    
 }
     
 template <typename Filtr>
     vector<Document> FindTopDocuments(const string& raw_query, Filtr filtr) const {
-     
-     const Query query = ParseQuery(raw_query);
-     vector<Document> matched_documents;
+        const Query query = ParseQuery(raw_query);
+        auto matched_documents = FindAllDocuments(query, filtr);
 
-     // Если по статусу
-     if constexpr (is_same_v<Filtr,DocumentStatus>){
-         switch (filtr)
-    {
-    case DocumentStatus::ACTUAL :
-        return FindTopDocuments(raw_query,[](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
-        
-    case DocumentStatus::BANNED :
-        return FindTopDocuments(raw_query,[](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::BANNED; });
-        
-    case DocumentStatus::IRRELEVANT :
-        return FindTopDocuments(raw_query,[](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::IRRELEVANT; });
-        
-    case DocumentStatus::REMOVED :
-        return FindTopDocuments(raw_query,[](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::REMOVED; });
-            
-    }       
-        }
-
-  // если функция      
-        else{ 
-            matched_documents = FindAllDocuments(query, filtr);
-        
-            sort(matched_documents.begin(), matched_documents.end(),
+        sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
                  if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
                      return lhs.rating > rhs.rating;
@@ -116,11 +93,10 @@ template <typename Filtr>
                      return lhs.relevance > rhs.relevance;
                  }
              });
-            if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
+        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
             matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
-            }
         }
-    return matched_documents;    
+        return matched_documents;
     }
 
     int GetDocumentCount() const {
@@ -179,11 +155,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
+           return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
@@ -229,6 +201,7 @@ private:
 template <typename Filtr>
 vector<Document> FindAllDocuments(const Query& query, Filtr filtr) const {
         map<int, double> document_to_relevance;
+        
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
                 continue;
