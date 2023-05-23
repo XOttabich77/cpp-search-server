@@ -78,18 +78,20 @@ void TestMinusWord(){
 // должен возвращаться пустой список слов.
 
 vector<string> FillDocumentsVector(){
-     vector<string> docum ={"Добавление aaaa документов. Добавленный документ должен находиться по поисковому запросу, который содержит слова из документа"s,
-    "Поддержка стоп-слов. Стоп-слова aaaa исключаются из текста документов"s,
-    "Поддержка минус-слов Документы содержащие минус-слова поискового запроса не должны включаться в результаты поиска"s,
-    "Сортировка найденных документов по  aaaa релевантности. Возвращаемые при поиске документов результаты должны быть отсортированы в порядке убывания релевантности"s,
-    "Вычисление рейтинга документов. Рейтинг добавленного документа равен среднему арифметическому оценок документа."s,
-    "Фильтрация результатов поиска с использованием  aaaa предиката, задаваемого пользователем"s,
+     vector<string> docum ={"Добавление aaaa документов слова из документа"s,
+    "Поддержка стоп-словaaaa исключаются из текста документов"s,
+    "Поддержка поискового запроса не включаться в результаты поиска"s,
+    "Сортировка aaaa релевантности в порядке убывания релевантности"s,
+    "Вычисление рейтинга документов арифметическому оценок документа."s,
+    "Фильтрация результатов п  aaaa предиката, задаваемого пользователем"s,
     "Поиск документов, имеющих заданный статус"s,
     "Корректное вычисление релевантности найденных документов"s};
     return docum;   
 }
 vector<vector<int>> FillRatingVector(){
-const vector<vector<int>> ratings = {{1, 2, 3},{1,3,5},{1,2,3,4},{1,2,3,4,4,4},{4,5,5,5},{6,1,2,5,6,4,6},{7,7,7,7,7,7,7,7,7},{8,2,8,2}};
+const vector<vector<int>> ratings = {{1, 2, 3}, {1,3,5}, {1,2,3,4},
+                                    {1,2,3,4,4,4}, {4,5,5,5}, {6,1,2,5,6,4,6},
+                                    {7,7,7,7,7,7,7,7,7}, {8,2,8,2}};
 return ratings;
 }
 
@@ -103,27 +105,32 @@ void TastMatching(){
     server.AddDocument(11,"jhggjhjhg bbbb jhggjhjhg aaaa YYyyyyy" , DocumentStatus::BANNED, ratings[1]);
     {
     const auto [words,doc_st] = server.MatchDocument("aaaa bbbb"s,11);
-    ASSERT_HINT(words.size()==2,"Test Matching Documents"s);
+    ASSERT_HINT(words.size() == 2,"Test Matching Documents: 1"s);
+    ASSERT_EQUAL_HINT(words[0],"aaaa"s, "Test Matching Documents: first word"s);
+    ASSERT_EQUAL_HINT(words[1],"bbbb"s, "Test Matching Documents: second word"s);
     }
     {
     const auto [words,doc_st] = server.MatchDocument("aaaa -bbbb"s,11);
-    ASSERT_HINT(words.size()==0,"Test Matching Documents Minus Word"s);
+    ASSERT_HINT(words.empty(),"Test Matching Documents Minus Word"s);
     }
 }
 // 5 Сортировка найденных документов по релевантности. Возвращаемые при поиске документов результаты должны 
 // быть отсортированы в порядке убывания релевантности.
-// 6 Вычисление рейтинга документов. Рейтинг добавленного документа равен среднему арифметическому оценок документа.
 
-void TestRelCountDownAndRating(){
+void TestRelCountDown(){
     FOR_TEST
     double test_rel=1;
-    for(const auto [id,rel,raiting]:server.FindTopDocuments("aaaa"s)){
-    const int i = (accumulate(ratings[id].begin(),ratings[id].end(),0)/ratings[id].size());
-// рейтинг
-     ASSERT_HINT(raiting==i,"Test Rating crush"s);
-// сортровка по рел
-     ASSERT_HINT(test_rel>=rel,"Test Relivation fail"s);
+    for(const auto [id,rel,raiting] : server.FindTopDocuments("aaaa"s)){
+    ASSERT_HINT(test_rel >= rel,"Test Relivation fail"s);
     test_rel=rel;
+    }
+}
+// 6 Вычисление рейтинга документов. Рейтинг добавленного документа равен среднему арифметическому оценок документа.
+void TestRatingCalculation(){
+    FOR_TEST
+    for(const auto [id,rel,raiting] : server.FindTopDocuments("aaaa"s)){
+    const int i = (accumulate(ratings[id].begin(),ratings[id].end(),0)/ratings[id].size());
+    ASSERT_HINT(raiting == i,"Test Rating crush"s);
     }
 }
 
@@ -133,24 +140,26 @@ void TestUserFunction(){
     FOR_TEST
     server.AddDocument(11,"jhggjhjhg bbbb jhggjhjhg aaaa YYyyyyy" , DocumentStatus::BANNED, ratings[1]);
     const auto found_docs = server.FindTopDocuments("aaaa"s, [](int document_id, DocumentStatus status, int rating) { return document_id  == 11 || rating == 3; }) ;
-    ASSERT_HINT(found_docs.size() == 3,"Test User function"s);
+    ASSERT_HINT(found_docs.size() == 2,"Test User function"s);
+    ASSERT_HINT(found_docs[0].id == 11 || found_docs[1].id == 11, "Test User function: ID"s);
+    ASSERT_HINT(found_docs[0].rating == 3 || found_docs[1].rating == 3, "Test User function: Rating"s);
 }
 
 // 8 Поиск документов, имеющих заданный статус.
 void TestStatusDoc(){
-    FOR_TEST
-    server.AddDocument(11,"jhggjhjhg bbbb jhggjhjhg aaaa YYyyyyy" , DocumentStatus::BANNED, ratings[1]);
+    SearchServer server;
+    server.AddDocument(11,"jhggjhjhg bbbb jhggjhjhg aaaa YYyyyyy" , DocumentStatus::BANNED, {1,2,3});
     const auto found_docs = server.FindTopDocuments("aaaa"s,DocumentStatus::BANNED);
     ASSERT_HINT(found_docs.size() == 1,"Test Find Status"s);
 
 }
 // 9 Корректное вычисление релевантности найденных документов.
-void TestRel(){
+void TestRelevanceIsCorrect(){
     FOR_TEST
     const auto found_docs = server.FindTopDocuments("aaaa"s);
-    double test_rel = found_docs[1].relevance;
-   // ASSERT_EQUAL_HINT(test_rel,0.0770164,"Rel is not correct"s);
-    ASSERT_HINT(abs(test_rel-0.0770164)<1E-6,"Rel is not correct"s);
+    //  double test_rel = found_docs[1].relevance;
+    ASSERT_EQUAL_HINT(found_docs[1].relevance, log(8*1.0/3)*1.0/7 ,"Relevance is not correct"s);
+    // ASSERT_HINT(abs(test_rel-0.140118)< 1E-6,"Rel is not correct"s);
 }
 /*
 Разместите код остальных тестов здесь
@@ -162,10 +171,11 @@ void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
     RUN_TEST(TestMinusWord);
     RUN_TEST(TastMatching);
-    RUN_TEST(TestRelCountDownAndRating);
+    RUN_TEST(TestRelCountDown);
+    RUN_TEST(TestRatingCalculation);
     RUN_TEST(TestUserFunction);
     RUN_TEST(TestStatusDoc);
-    RUN_TEST(TestRel);
+    RUN_TEST(TestRelevanceIsCorrect);
    
 }
 
