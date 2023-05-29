@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <numeric>
 
 using namespace std;
 
@@ -82,7 +83,9 @@ public:
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
         for(const auto & str:stop_words_) { 
-            if(CheckSimbol(str)) throw invalid_argument("Stop words contain invalid characters "s);
+            if(CheckSimbol(str)){
+                 throw invalid_argument("Stop words contain invalid characters "s);
+            }
         }
     }
     explicit SearchServer(const string& stop_words_text)
@@ -97,7 +100,7 @@ public:
         if(documents_.count(document_id)) throw invalid_argument("Attempt to add a document with the ID of a previously added document "s);
         if (CheckSimbol(document)) throw invalid_argument("The presence of invalid characters (with codes from 0 to 31) in the text of the document being added"s);
      // ----------       
-
+        id_documents_.push_back(document_id);
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
         for (const string& word : words) {
@@ -124,15 +127,11 @@ public:
         return matched_documents;
     }
 
-    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status) const {
+    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status=DocumentStatus::ACTUAL) const {
         return FindTopDocuments(
             raw_query, [status]([[maybe_unused]]int document_id, DocumentStatus document_status, [[maybe_unused]] int rating) {
                 return document_status == status;
             });
-    }
-
-    vector<Document> FindTopDocuments(const string& raw_query) const {
-        return FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
     }
 
     int GetDocumentCount() const {
@@ -140,16 +139,7 @@ public:
     }
 
     int GetDocumentId(int index) const {
-            if (index<0 || index > GetDocumentCount()) throw out_of_range("The index of the transmitted document is out of the acceptable range"s);
-            int i=0;
-            for(const auto & doc:documents_){
-                if(i == index) {
-                    auto const & [key,value] = doc;
-                    return key;
-                }
-                ++i;
-            }
-        return 0;
+        return id_documents_[index];
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
@@ -183,6 +173,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    vector <int> id_documents_;
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -202,11 +193,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
+           return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
