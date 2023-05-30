@@ -12,6 +12,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const double MARGIN_ERROR = 1e-6;
 
 string ReadLine() {
     string s;
@@ -96,9 +97,15 @@ public:
      void AddDocument(int document_id, const string& document, DocumentStatus status,
                      const vector<int>& ratings) {
      // Error   
-        if( document_id < 0 ) throw invalid_argument("Attempt to add a document with a negative ID "s);
-        if(documents_.count(document_id)) throw invalid_argument("Attempt to add a document with the ID of a previously added document "s);
-        if (CheckSimbol(document)) throw invalid_argument("The presence of invalid characters (with codes from 0 to 31) in the text of the document being added"s);
+        if( document_id < 0 ) {
+            throw invalid_argument("Attempt to add a document with a negative ID "s);
+        }
+        if(documents_.count(document_id)){
+            throw invalid_argument("Attempt to add a document with the ID of a previously added document "s);
+        }
+        if (CheckSimbol(document)){
+            throw invalid_argument("The presence of invalid characters (with codes from 0 to 31) in the text of the document being added"s);
+        }
      // ----------       
         id_documents_.push_back(document_id);
         const vector<string> words = SplitIntoWordsNoStop(document);
@@ -115,7 +122,7 @@ public:
         auto matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (abs(lhs.relevance - rhs.relevance) < MARGIN_ERROR) {
                      return lhs.rating > rhs.rating;
                  } else {
                      return lhs.relevance > rhs.relevance;
@@ -128,8 +135,7 @@ public:
     }
 
     vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status=DocumentStatus::ACTUAL) const {
-        return FindTopDocuments(
-            raw_query, [status]([[maybe_unused]]int document_id, DocumentStatus document_status, [[maybe_unused]] int rating) {
+        return FindTopDocuments(raw_query, [status]([[maybe_unused]]int document_id, DocumentStatus document_status, [[maybe_unused]] int rating) {
                 return document_status == status;
             });
     }
@@ -193,7 +199,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-           return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
+        return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
@@ -245,12 +251,20 @@ private:
 
     void CheckQueryWords(const Query& query) const{
         for(const auto& word:query.minus_words){
-            if(word[0] == '-') throw invalid_argument("The presence of more than one minus sign before the words"s);
-            if(word.empty()) throw invalid_argument("Absence of text after the MINUS symbol in the search query"s);
-            if(CheckSimbol(word)) throw invalid_argument("Minus word - with codes from 0 to 31 in the words of the search query;"s);
+            if(word[0] == '-') {
+                throw invalid_argument("The presence of more than one minus sign before the words"s);
+            }
+            if(word.empty()){
+                throw invalid_argument("Absence of text after the MINUS symbol in the search query"s);
+            }
+            if(CheckSimbol(word)){
+                throw invalid_argument("Minus word - with codes from 0 to 31 in the words of the search query;"s);
+            }
         }
         for(const auto& word:query.plus_words){
-            if(CheckSimbol(word)) throw invalid_argument("Plus word - with codes from 0 to 31 in the words of the search query;"s);
+            if(CheckSimbol(word)) {
+                throw invalid_argument("Plus word - with codes from 0 to 31 in the words of the search query;"s);
+            }
         }
     }
 
@@ -286,8 +300,7 @@ private:
 
         vector<Document> matched_documents;
         for (const auto [document_id, relevance] : document_to_relevance) {
-            matched_documents.push_back(
-                {document_id, relevance, documents_.at(document_id).rating});
+            matched_documents.push_back({document_id, relevance, documents_.at(document_id).rating});
         }
         return matched_documents;
     }
