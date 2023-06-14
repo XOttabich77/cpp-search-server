@@ -17,7 +17,8 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
 
         const double inv_word_count = 1.0 / words.size();
         for (const std::string& word : words) {
-            word_to_document_freqs_[word][document_id] += inv_word_count;
+         //   word_to_document_freqs_[word][document_id] += inv_word_count;
+            word_to_document_freqs1_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ SearchServer::ComputeAverageRating(ratings), status });
         document_ids_.push_back(document_id);
@@ -46,24 +47,52 @@ int SearchServer::GetDocumentId(int index) const
     return document_ids_.at(index);
 }
 
+vector<int>::iterator SearchServer::begin() 
+{
+    return document_ids_.begin();
+}
+
+vector<int>::iterator SearchServer::end() 
+{
+    return document_ids_.end();
+}
+
+const map<string, double>& SearchServer::GetWordFrequencies(int document_id) const
+{
+    
+    if (word_to_document_freqs1_.count(document_id) == 0) {
+    static const map<std::string, double> empty;
+            return empty;
+    }              
+    return word_to_document_freqs1_.at(document_id);;
+}
+
+void SearchServer::RemoveDocument(int document_id)
+{
+    word_to_document_freqs1_.erase(document_id);
+    documents_.erase(document_id);
+  //  sort(document_ids_.begin(), document_ids_.end());
+  //  auto it_v = lower_bound(document_ids_.begin(), document_ids_.end(), document_id);
+    auto it_v = find(document_ids_.begin(), document_ids_.end(), document_id);
+    document_ids_.erase(it_v);
+}
+
 tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& raw_query, int document_id) const
 {
-    const auto query = SearchServer::ParseQuery(raw_query);
+   const auto query = SearchServer::ParseQuery(raw_query);
 
     vector<string> matched_words;
-    for (const string& word : query.plus_words) {
-        if (word_to_document_freqs_.count(word) == 0) {
-            continue;
-        }
-        if (word_to_document_freqs_.at(word).count(document_id)) {
+    if (word_to_document_freqs1_.count(document_id) != 0) {
+        for (const string& word : query.plus_words) {
+            if (word_to_document_freqs1_.at(document_id).count(word) == 0) {
+                continue;
+            }
             matched_words.push_back(word);
         }
-    }
-    for (const string& word : query.minus_words) {
-        if (word_to_document_freqs_.count(word) == 0) {
-            continue;
-        }
-        if (word_to_document_freqs_.at(word).count(document_id)) {
+        for (const string& word : query.minus_words) {
+            if (word_to_document_freqs1_.at(document_id).count(word) == 0) {
+                continue;
+            }
             matched_words.clear();
             break;
         }
@@ -145,4 +174,35 @@ SearchServer::Query SearchServer::ParseQuery(const string& text) const
     return result;
 }
 
+void AddDocument(SearchServer& search_server, const int id, const string& document, DocumentStatus status, const vector<int>& ratings) {
+    search_server.AddDocument(id, document, status, ratings);
 
+}
+
+inline std::ostream& operator << (std::ostream& os, const Document& doc) {
+    return os << "{ document_id = " << doc.id << ", relevance = " << doc.relevance << ", rating = " << doc.rating << " }";
+}
+
+void FindTopDocuments(const SearchServer& search_server, const std::string& raw_query)
+{
+    LOG_DURATION_STREAM("FindTopDocuments time", std::cout);
+    auto documents = search_server.FindTopDocuments(raw_query);
+    for (const Document& document : documents)
+        std::cout << document << std::endl;
+}
+
+
+void MatchDocuments(const SearchServer& search_server, const std::string& raw_query)
+{
+    LOG_DURATION_STREAM("Operation time", std::cout);
+    for (int document_id = 0; document_id < search_server.GetDocumentCount(); ++document_id) {
+        const auto [words, status] =
+            search_server.MatchDocument(raw_query, document_id);
+        std::cout << "{ document_id = "s << document_id << ", status = "s << static_cast<int>(status) << ", words = ";
+        for (std::string word : words)
+            std::cout << word << " ";
+        std::cout << "}\n";
+
+
+    }
+}

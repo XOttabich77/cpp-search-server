@@ -8,14 +8,9 @@ using namespace std;
 
 #include "test_example_function.h"
 
-
 int main() {
-
-    TestHelloWord();
-
-    TestTotalEmptyRequests();
-    TestPaginate();
-    TestErrorSerchServer();
-        
+    TestFindRequest();
+    TestPaginateMy();
+    TestDelDublicate();
     return 0;
 }

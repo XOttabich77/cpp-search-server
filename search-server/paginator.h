@@ -47,3 +47,22 @@ public:
 private:
     std::vector<IteratorRange<Iterator>> pages_;
 };
+
+inline std::ostream& operator << (std::ostream& os, const Document& doc) {
+    return os << "{ document_id = " << doc.id << ", relevance = " << doc.relevance << ", rating = " << doc.rating << " }";
+}
+
+
+template <typename Iterator>
+inline std::ostream& operator << (std::ostream& os, IteratorRange <Iterator> it) {
+    for (auto docum = it.begin(); docum != it.end(); docum++) {
+        os << *docum;
+    }
+    return os;
+}
+
+template <typename Container>
+auto Paginate(const Container& c, size_t page_size) {
+    return Paginator(begin(c), end(c), page_size);
+}
+
