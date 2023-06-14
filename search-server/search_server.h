@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include "document.h"
 #include "string_processing.h"
@@ -92,6 +93,8 @@ inline SearchServer::SearchServer(const StringContainer& stop_words)
     }
 }
 
+#define ERROR_RATE 1e-6
+
 template<typename DocumentPredicate>
 inline std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentPredicate document_predicate) const
 {
@@ -100,7 +103,7 @@ inline std::vector<Document> SearchServer::FindTopDocuments(const std::string& r
     auto matched_documents = FindAllDocuments(query, document_predicate);
     sort(matched_documents.begin(), matched_documents.end(),
         [](const Document& lhs, const Document& rhs) {
-            if (std::abs(lhs.relevance - rhs.relevance) < 1e-6) {
+            if (std::abs(lhs.relevance - rhs.relevance) < ERROR_RATE) {
                 return lhs.rating > rhs.rating;
             }
             else {
