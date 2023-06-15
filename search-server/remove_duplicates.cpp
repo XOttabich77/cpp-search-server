@@ -25,7 +25,7 @@ void RemoveDuplicates(SearchServer& search_server) {
             to_delete.push_back(document_id);
         }
     }
-    for (auto i : to_delete) {
-        search_server.RemoveDocument(i);
+    for (auto id : to_delete) {
+        search_server.RemoveDocument(id);
     }
 }
