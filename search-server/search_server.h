@@ -16,6 +16,8 @@
 #include "concurrent_map.h"
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const int ERROR_RATE = 1e-6;
+
 using StringStatus = std::tuple<std::vector<std::string_view>, DocumentStatus>;
 
 class SearchServer {
@@ -137,7 +139,7 @@ std::vector<Document> SearchServer::FindTopDocuments(ExecutionPolicy&& policy, c
     return FindTopDocuments(policy, raw_query, DocumentStatus::ACTUAL);
 }
 
-#define ERROR_RATE 1e-6
+
 
 // 4 main
 template<class ExecutionPolicy, typename DocumentPredicate>
