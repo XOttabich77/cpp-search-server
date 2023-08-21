@@ -4,8 +4,8 @@
 
 using namespace std;
 
-const set<string> GetKeyFromMap(const map<string, double>& a) {
-    set<string> b;
+const set<string_view> GetKeyFromMap(const map<string_view, double>& a) {
+    set<string_view> b;
     for (auto el:a)
     {
         b.insert(el.first);
@@ -15,9 +15,9 @@ const set<string> GetKeyFromMap(const map<string, double>& a) {
 
 void RemoveDuplicates(SearchServer& search_server) {
     vector<int> to_delete;
-    set <set<string>> temp_words;
+    set <set<string_view>> temp_words;
 
-    sort(search_server.begin(), search_server.end());   
+    //sort(search_server.begin(), search_server.end());   
     for (const int document_id : search_server) {
         auto el = temp_words.insert(GetKeyFromMap(search_server.GetWordFrequencies(document_id)));
         if (!el.second) {

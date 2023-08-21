@@ -1,5 +1,5 @@
 #include "log_duration.h"
-
+/*
 LogDuration::LogDuration(const std::string& id)
     : LogDuration(id, std::cerr)
 {
@@ -19,3 +19,4 @@ LogDuration::~LogDuration()
     const auto dur = end_time - start_time_;
     *out_ << id_ << ": "s << duration_cast<milliseconds>(dur).count() << " ms"s << std::endl;
 }
+*/
