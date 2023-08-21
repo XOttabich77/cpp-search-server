@@ -69,12 +69,12 @@ void SearchServer::RemoveDocument(int document_id)
     RemoveDocument(execution::seq, document_id);
 }
 
-tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const string_view& raw_query, int document_id) const
+StringStatus SearchServer::MatchDocument(const string_view& raw_query, int document_id) const
 {
     return MatchDocument(execution::seq, raw_query, document_id);
 }
 
-std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const
+StringStatus SearchServer::MatchDocument(const std::execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const
 {
     if (word_freqs_in_document_.count(document_id) == 0) {
         throw std::invalid_argument("Invalid Argument");
@@ -100,7 +100,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
     return { matched_words, documents_.at(document_id).status };
 }
 
-std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::parallel_policy&, const std::string_view& raw_query, int document_id) const
+StringStatus SearchServer::MatchDocument(const std::execution::parallel_policy&, const std::string_view& raw_query, int document_id) const
 {
     if (word_freqs_in_document_.count(document_id) == 0) {
         throw std::invalid_argument("Invalid Argument");

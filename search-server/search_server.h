@@ -16,7 +16,7 @@
 #include "concurrent_map.h"
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
-
+using StringStatus = std::tuple<std::vector<std::string_view>, DocumentStatus>;
 
 class SearchServer {
 public:
@@ -55,10 +55,9 @@ public:
     template< class ExecutionPolicy>
     void RemoveDocument(ExecutionPolicy&& policy,int document_id);
 
-
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::string_view& raw_query,int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::parallel_policy&, const std::string_view& raw_query, int document_id) const;
+    StringStatus MatchDocument(const std::string_view& raw_query,int document_id) const;
+    StringStatus MatchDocument(const std::execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const;
+    StringStatus MatchDocument(const std::execution::parallel_policy&, const std::string_view& raw_query, int document_id) const;
    
 
 private:
