@@ -22,5 +22,5 @@
 
 Использованы технологии:
 С++17
-IDE MVS
+IDE Microsoft Visual Studio
 
